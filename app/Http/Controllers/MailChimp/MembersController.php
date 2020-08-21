@@ -64,17 +64,19 @@ class MembersController extends Controller
             $requestData['vip'] = (bool)$requestData['vip'];
         }
 
-		$errorResponse = $this->checkDuplicateEmail($listId, $requestData['email_address']);
+        $errorResponse = $this->checkDuplicateEmail($listId, $requestData['email_address']);        
 		if (!empty($errorResponse)) {
 			return $errorResponse;
 		}
 
         $member = new MailChimpMember($requestData);
+
         // Validate entity
         $mailchimpData = $member->toMailChimpArray();
         $validator = $this->getValidationFactory()->make($mailchimpData, $member->getValidationRules());
 
         if ($validator->fails()) {
+
             // Return error response if validation failed
             return $this->errorResponse([
                 'message' => 'Invalid data given',
@@ -85,12 +87,15 @@ class MembersController extends Controller
         try {
             // Save member into db
             $this->saveEntity($member);
+
             // Save member into MailChimp
-            //ATTENTION: the 1st param needs to match API URI
             $response = $this->mailChimp->post("lists/{$mailchimpId}/members", $mailchimpData);
+
             // Set MailChimp id on the member and save member into db
             $this->saveEntity($member->setMailChimpId($response->get('id')));
+
         } catch (Exception $exception) {
+
             // Return error response if something goes wrong
             return $this->errorResponse(['message' => $exception->getMessage()]);
         }
@@ -118,7 +123,6 @@ class MembersController extends Controller
             return $this->errorMember($listId,$memberId);
         }
 
-        //there should only be one record
         return $this->successfulResponse($members[0]->toArray());
     }
 
@@ -139,16 +143,17 @@ class MembersController extends Controller
 
         /** @var MailChimpMember|null $members */
         $members = $this->entityManager->getRepository(MailChimpMember::class)->findBy(['listId' => $listId]);
-
         if ($members === null) {
             return $this->errorMember($listId);
         }
 
         $membersData = array();
+
         /** @var MailChimpMember $member */
         foreach ($members as $member) {
             $membersData[] = $member->toArray();
         }
+
         return $this->successfulResponse($membersData);
     }
 

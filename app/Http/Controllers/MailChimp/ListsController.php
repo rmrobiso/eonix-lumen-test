@@ -93,43 +93,7 @@ class ListsController extends Controller
     public function showList(string $listId): JsonResponse
     {
         return $this->getListResponse($this->getListbyId($listId), $listId);
-    }
-
-    /**
-     * Remove MailChimp list.
-     *
-     * @param string $listId
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function remove(string $listId): JsonResponse
-    {
-        /** @var MailChimpList|null $list */
-        $list = $this->getListbyId($listId);
-
-        if (is_null($list)) {
-            return $this->errorList($listId);
-        }
-
-        try {
-            // Remove list from database
-            $this->removeEntity($list);
-
-            // Remove list from MailChimp
-            $mailchimpId = $list->getMailChimpId();
-
-            if (empty($mailchimpId)) {
-                return $this->errorMailChimp($listId);
-            }
-
-            $this->mailChimp->delete(\sprintf('lists/%s', $mailchimpId));
-
-        } catch (Exception $exception) {
-            return $this->errorResponse(['message' => $exception->getMessage()]);
-        }
-
-        return $this->successfulResponse([]);
-    }   
+    }      
 
     /**
      * Update MailChimp list.
@@ -144,8 +108,11 @@ class ListsController extends Controller
         /** @var MailChimpList|null $list */
         $list = $this->getListbyId($listId);
         
-        if (is_null($list)) {
-            return $this->errorList($listId);
+        if ($list === null) {
+            return $this->errorResponse(
+                ['message' => \sprintf('MailChimpList[%s] not found', $listId)],
+                404
+            );
         }
 
         // Update list properties
@@ -180,5 +147,41 @@ class ListsController extends Controller
         }
 
         return $this->successfulResponse($list->toArray());
-    }    
+    }
+    
+    /**
+     * Remove MailChimp list.
+     *
+     * @param string $listId
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function remove(string $listId): JsonResponse
+    {
+        /** @var MailChimpList|null $list */
+        $list = $this->getListbyId($listId);
+
+        if (is_null($list)) {
+            return $this->errorList($listId);
+        }
+
+        try {
+            // Remove list from database
+            $this->removeEntity($list);
+
+            // Remove list from MailChimp
+            $mailchimpId = $list->getMailChimpId();
+
+            if (empty($mailchimpId)) {
+                return $this->errorMailChimp($listId);
+            }
+
+            $this->mailChimp->delete(\sprintf('lists/%s', $mailchimpId));
+
+        } catch (Exception $exception) {
+            return $this->errorResponse(['message' => $exception->getMessage()]);
+        }
+
+        return $this->successfulResponse([]);
+    } 
 }

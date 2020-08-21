@@ -22,20 +22,7 @@ abstract class Controller extends BaseController
      * @var string
      */
     protected $mailChimpId;
-
-    /**
-     * only the one in sub class should be used
-     */
-    private const ERROR_MAILCHIMP = '';
-
-    /**
-     * Error message for no Mailchimp ID, more details is to be added in sub class
-     */
-    const ERR_MAILCHIMP_ID = 'Mailchimp ID';
-
-    const HTTP_STATUS_BAD_REQUEST = 400;
-    const HTTP_OK = 200;
-
+       
     /**
      * Controller constructor.
      *
@@ -57,7 +44,7 @@ abstract class Controller extends BaseController
      */
     protected function errorResponse(?array $data = null, ?int $status = null, ?array $headers = null): JsonResponse
     {
-        return \response()->json($data ?? [], $status ?? static::HTTP_STATUS_BAD_REQUEST, $headers ?? []);
+        return \response()->json($data ?? [], $status ?? 400, $headers ?? []);
     }
 
     /**
@@ -66,11 +53,9 @@ abstract class Controller extends BaseController
      * @param null|string $idsDesc Description of list id or member id, or their combination
      * @return JsonResponse
      */
-    protected function errorResponseByType(string $type, ?string $idsDesc = '') {
-        return $this->errorResponse(
-            ['message' => self::getErrorMessage($type, $idsDesc)],
-            static::HTTP_STATUS_BAD_REQUEST
-        );
+    protected function errorResponseByType(string $type, ?string $idsDesc = '') 
+    {
+        return $this->errorResponse(['message' => self::getErrorMessage($type, $idsDesc)], 400);
     }
 
     /**
@@ -79,7 +64,8 @@ abstract class Controller extends BaseController
      * @param null|string $idsDesc Description of list id or member id, or their combinations
      * @return string
      */
-    public static function getErrorMessage($type, $idsDesc) : string {
+    public static function getErrorMessage($type, $idsDesc) : string 
+    {
         return \sprintf('%s not found [%s]', $type, $idsDesc);
     }
 
@@ -129,14 +115,15 @@ abstract class Controller extends BaseController
      */
     protected function successfulResponse(?array $data = null, ?array $headers = null): JsonResponse
     {
-        return \response()->json($data ?? [], self::HTTP_OK, $headers ?? []);
+        return \response()->json($data ?? [], 200, $headers ?? []);
     }
 
     /**
      * @param string $listId
      * @return MailChimpList|null
      */
-    protected function getListbyId(string $listId) : ?MailChimpList {
+    protected function getListbyId(string $listId) : ?MailChimpList 
+    {
         //IDE will have warning if directly return method call
         /** @var MailChimpList|null $list */
         $list = $this->entityManager->getRepository(MailChimpList::class)->find($listId);
@@ -147,10 +134,10 @@ abstract class Controller extends BaseController
     /**
      * @return MailChimpList[]|null
      */
-    protected function getLists() : ?array {
+    protected function getLists() : ?array 
+    {
         /** @var MailChimpList[]|null $lists */
         return $this->entityManager->getRepository(MailChimpList::class)->findAll();
-
     }
 
     /**
@@ -209,9 +196,7 @@ abstract class Controller extends BaseController
      */
     public function errorMailChimp(?string $listId, ?string $memberId = null): JsonResponse
     {
-        /** @noinspection PhpUndefinedClassConstantInspection
-         * late binding, ERROR_MAILCHIMP defined in sub classes
-         */
+        /** @noinspection PhpUndefinedClassConstantInspection */
         return $this->errorResponseByType($this->getErrorMailChimp(), self::idsDesc($listId, $memberId));
     }
 
@@ -230,7 +215,8 @@ abstract class Controller extends BaseController
      * @param string $listId
      * @return string
      */
-    public function getMailChimpIdByListId(string $listId): string {
+    public function getMailChimpIdByListId(string $listId): string 
+    {
         /** @var MailChimpList $list */
         $list = $this->getListbyId($listId);
         return !empty($list) ? $list->getMailChimpId() : '';
@@ -245,7 +231,8 @@ abstract class Controller extends BaseController
      * @param null|string $mailchimpMemberId Member Mailchimp Id
      * @return string
      */
-    public static function idsDesc(?string $listId, ?string $memberId = null, ?string $mailchimpListId = null, ?string $mailchimpMemberId = null): string {
+    public static function idsDesc(?string $listId, ?string $memberId = null, ?string $mailchimpListId = null, ?string $mailchimpMemberId = null): string 
+    {
         $ids = [];
         if (!empty($listId)) {
             $ids['List Id'] = $listId;
@@ -275,7 +262,7 @@ abstract class Controller extends BaseController
      * Get constant ERROR_MAILCHIMP from child class
      * @return string
      */
-    public function getErrorMailChimp() {
-        return static::ERROR_MAILCHIMP;
+    public function getErrorMailChimp() { 
+        return ''; 
     }
 }
