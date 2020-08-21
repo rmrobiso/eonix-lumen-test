@@ -51,7 +51,7 @@ class MembersController extends Controller
             return $this->errorMailChimp($listId);
         }
 
-        // Instantiate entity
+        // Aggregate  data from request parameters
         $requestData = $request->all();
 
         //list id could be included in request body
@@ -69,6 +69,7 @@ class MembersController extends Controller
 			return $errorResponse;
 		}
 
+        // Instantiate entity
         $member = new MailChimpMember($requestData);
 
         // Validate entity
@@ -85,14 +86,14 @@ class MembersController extends Controller
         }
 
         try {
-            // Save member into db
-            $this->saveEntity($member);
-
-            // Save member into MailChimp
+            // Save List new member into MailChimp
             $response = $this->mailChimp->post("lists/{$mailchimpId}/members", $mailchimpData);
 
-            // Set MailChimp id on the member and save member into db
-            $this->saveEntity($member->setMailChimpId($response->get('id')));
+            // Set MailChimp id of the member
+            $member->setMailChimpId($response->get('id'));
+
+            // Save new List member into DB
+            $this->saveEntity($member);
 
         } catch (Exception $exception) {
 
@@ -208,18 +209,19 @@ class MembersController extends Controller
                 return $this->errorMailChimp($listId, $memberId);
             }
 
-            // Update member into MailChimp server
-            $response = $this->mailChimp->patch("lists/{$list->getMailChimpId()}/members/{$member->getMailChimpId()}", $member->toMailChimpArray());
+            // Update member into MailChimp server ( PUT )
+            $response = $this->mailChimp->put("lists/{$list->getMailChimpId()}/members/{$member->getMailChimpId()}", $member->toMailChimpArray());
 
-            //if member ID on Mailchimp server is changed, update own DB accordingly
+            //Check for member ID on Mailchimp server, if changed, update the DB
             if ($response->get('id') != $member->getMailChimpId()) {
                 $member->setMailChimpId($response->get('id'));
             }
 
-            // Update member into database only after Mailchimp server request is successful in order to avoid inconsistent data left in own DB
+            // Update member info into DB 
             $this->saveEntity($member);
 
         } catch (Exception $exception) {
+
             return $this->errorResponse(['message' => $exception->getMessage()]);
         }
 
@@ -246,21 +248,21 @@ class MembersController extends Controller
             return $this->errorMember($listId,$memberId);
         }
 
-		//even if there's only one record,it's still array
 		$member = $members[0];
         try {
-            //it's possible not being saved to Mailchimp server;
-            // If you know it will definitely fail, why still send request?
-            if (empty($list->getMailChimpId()) || empty($member->getMailChimpId())) {
+                if (empty($list->getMailChimpId()) || empty($member->getMailChimpId())) {
+
                 return $this->errorMailChimp($listId, $memberId);
             }
 
-            // Remove member from MailChimp
+            // Remove member from MailChimp ( DELETE )
             $this->mailChimp->delete(\sprintf('lists/%s/members/%s', $list->getMailChimpId(), $member->getMailChimpId()));
 
-            // Remove member from own database only after it's successful on Mailchimp server
+            // Delete member from the DB after successful removal from Mailchimp server
             $this->removeEntity($member);
+
         } catch (Exception $exception) {
+
             return $this->errorResponse(['message' => $exception->getMessage()]);
         }
 
@@ -268,7 +270,7 @@ class MembersController extends Controller
     }
 
 	/**
-	 * Is Email existing
+	 * Check if Email is already existing
 	 * @param string $email
 	 * @return bool
 	 */
@@ -278,7 +280,7 @@ class MembersController extends Controller
 	}
 
 	/**
-	 * validate duplicate Email and get error response
+	 * Validate duplicate Email and get error response
 	 * @param string $listId
 	 * @param string $emailAddress
 	 * @return JsonResponse|null $errorResponse
@@ -296,22 +298,22 @@ class MembersController extends Controller
 	}
 	
 	/**
-	 * Is there existing member by criteria
+	 * Check the existing member by criteria
 	 * @param array $criteria
 	 * @return MailChimpMember[]|null
 	 */
 	private function getMembers(array $criteria): ?array
 	{
-		/** @var MailChimpMember[]|null $member
-		 * It's array although only one record
+		/** 
+		 * @var MailChimpMember[]|null $member
 		 */
-		$members = $this->entityManager->getRepository(MailChimpMember::class)->findBy($criteria);
-		//when there's no record,it's an empty array
+        $members = $this->entityManager->getRepository(MailChimpMember::class)->findBy($criteria);
+        
 		return $members;
 	}
 
 	/**
-	 * Check if email existing under a list
+	 * Check if email exists under a list
 	 * @param string $listId
 	 * @param string $emailAddress
 	 * @return bool
@@ -322,7 +324,7 @@ class MembersController extends Controller
 	}
 
 	/**
-	 * Get error message for duplicate email address under one list
+	 * Display error message for duplicate email address under one list
 	 * @param string $emailAddress
 	 * @param string $listId
 	 * @return string
@@ -333,7 +335,7 @@ class MembersController extends Controller
 	}
 
 	/**
-	 * Get error message when max number of signup has exceeded for the same email address
+	 * Display error message when max number of signup has exceeded for the same email address
 	 * @param string $emailAddress
 	 * @return string
 	 */

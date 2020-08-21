@@ -140,7 +140,7 @@ class ListsController extends Controller
             $this->saveEntity($list);
 
             // Update list into MailChimp
-            $this->mailChimp->patch(\sprintf('lists/%s', $mailchimpId), $list->toMailChimpArray());
+            $this->mailChimp->put(\sprintf('lists/%s', $mailchimpId), $list->toMailChimpArray());
 
         } catch (Exception $exception) {
             return $this->errorResponse(['message' => $exception->getMessage()]);
